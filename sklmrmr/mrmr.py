@@ -8,15 +8,45 @@ __all__ = ['MRMR']
 
 
 class MRMR(BaseEstimator, SelectorMixin):
+    """Maximum Relevance Minimum Redundancy (MRMR) feature selection.
+
+    Selects features with high mutual information with labels ``y``
+    and low mutual information among themselves.
+
+    Parameters
+    ----------
+    k : int
+        Number of features to select. Defaults to half of the given features.
+
+    method : string
+        One of 'mid', 'maxrel', or 'miq'.
+
+    normalize : bool
+        Whether to use normalized mutual information.
+
+    Attributes
+    ----------
+    n_features_ : int
+        Number of features selected. May be less than ``k``.
+
+    support_ : ndarray
+        ``support[i]`` is True if feature ``i`` was selected.
+
+    ranking_ : ndarray
+        ``ranking[i]`` is order in which feature ``i`` was selected,
+        starting from 1.
+
+    selected_ = ndarray
+        Indices of features that were selected, in order.
+
+    """
     methods = {'maxrel': MAXREL, 'mid': MID, 'miq': MIQ}
 
-    def __init__(self, k=None, method='mid', normalize=False,
-                 verbose=0):
+    def __init__(self, k=None, method='mid', normalize=False):
         self.method = method
         self.k = k
         self.method = method
         self.normalize = normalize
-        self.verbose = verbose
 
     def _validate(self):
         if self.method not in self.methods:
