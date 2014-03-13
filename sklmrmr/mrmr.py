@@ -41,6 +41,7 @@ class MRMR(BaseEstimator, SelectorMixin):
 
     """
     methods = {'maxrel': MAXREL, 'mid': MID, 'miq': MIQ}
+    warn_limit = 1000
 
     def __init__(self, k=None, method='mid', normalize=False):
         self.k = k
@@ -57,7 +58,20 @@ class MRMR(BaseEstimator, SelectorMixin):
         X, y = check_arrays(X, y, sparse_format="csc")
         n_samples, n_features = X.shape
 
-        # TODO: ensure only discrete features
+        # discretize continuous features
+        if np.issubdtype(X.dtype, float):
+            X_new = X.astype(np.int)
+            if np.any(X_new != X):
+                raise ValueError('X could not safely be converted to integers.'
+                                 ' MRMR does not support continuous values.')
+            X = X_new
+
+        if np.issubdtype(y.dtype, float):
+            y_new = y.astype(np.int)
+            if np.any(y_new != y):
+                raise ValueError('y could not safely be converted to integers.'
+                                 ' MRMR does not support continuous values.')
+            y = y_new
 
         if self.k is None:
             k = n_features // 2
@@ -66,6 +80,13 @@ class MRMR(BaseEstimator, SelectorMixin):
 
         X_classes = np.array(list(set(X.reshape((n_samples * n_features,)))))
         y_classes = np.array(list(set(y.reshape((n_samples,)))))
+
+        if len(X_classes) > self.warn_limit:
+            print('Warning: X contains {} discrete values. MRMR may'
+                  ' run slow'.format(len(X_classes)))
+        if len(y_classes) > self.warn_limit:
+            print('Warning: y contains {} discrete values. MRMR may'
+                  ' run slow'.format(len(y_classes)))
 
         method = self.methods[self.method]
         idxs, _ = _mrmr(n_samples, n_features, y.astype(np.long),
