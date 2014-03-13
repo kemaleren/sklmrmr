@@ -4,6 +4,8 @@ from sklearn.feature_selection.base import SelectorMixin
 from sklearn.utils import check_arrays
 from sklmrmr._mrmr import _mrmr, MAXREL, MID, MIQ
 
+from sklmrmr.bayesian_blocks import bayesian_blocks
+
 __all__ = ['MRMR']
 
 
@@ -12,6 +14,10 @@ class MRMR(BaseEstimator, SelectorMixin):
 
     Selects features with high mutual information with labels ``y``
     and low mutual information among themselves.
+
+    MRMR can only handle discrete features and labels, because it
+    needs to compute mutual information. It can optionally try to
+    discretize continuous features.
 
     Parameters
     ----------
@@ -23,6 +29,11 @@ class MRMR(BaseEstimator, SelectorMixin):
 
     normalize : bool
         Whether to use normalized mutual information.
+
+    discretize : bool
+        Whether to discretize ``y`` and columns of ``X`` if necessary.
+        If ``discretize`` is False and ``X`` or ``y`` cannot safely be
+        converted to integers, throws an exception.
 
     Attributes
     ----------
@@ -43,35 +54,50 @@ class MRMR(BaseEstimator, SelectorMixin):
     methods = {'maxrel': MAXREL, 'mid': MID, 'miq': MIQ}
     warn_limit = 1000
 
-    def __init__(self, k=None, method='mid', normalize=False):
+    def __init__(self, k=None, method='mid', normalize=False,
+                 discretize=False):
         self.k = k
         self.method = method.lower()
         self.normalize = normalize
+        self.discretize = discretize
 
     def _validate(self):
         if self.method not in self.methods:
             raise ValueError("Unknown method: {}. Method must be one"
                              " of {}".format(self.method, self.methods.keys()))
 
+    def _discretize(self, vector):
+        vec_new = vector.astype(np.long)
+        if np.all(vector == vec_new):
+            return vec_new
+        if len(set(vector)) == 1:
+            return np.zeros(vector.shape, dtype=np.long)
+        bin_edges = bayesian_blocks(vector)
+        return np.digitize(vector, bin_edges)
+
     def fit(self, X, y):
         self._validate()
         X, y = check_arrays(X, y, sparse_format="csc")
         n_samples, n_features = X.shape
 
-        # discretize continuous features
+        # discretize X and y if necessary
         if np.issubdtype(X.dtype, float):
-            X_new = X.astype(np.int)
+            X_new = X.astype(np.long)
             if np.any(X_new != X):
-                raise ValueError('X could not safely be converted to integers.'
-                                 ' MRMR does not support continuous values.')
-            X = X_new
+                if not self.discretize:
+                    raise ValueError('MRMR does not support continuous values.'
+                                     ' X could not safely be converted to'
+                                     ' integers, and ``discretize`` is False')
+                X = np.apply_along_axis(self._discretize, axis=0, arr=X)
 
         if np.issubdtype(y.dtype, float):
-            y_new = y.astype(np.int)
+            y_new = y.astype(np.long)
             if np.any(y_new != y):
-                raise ValueError('y could not safely be converted to integers.'
-                                 ' MRMR does not support continuous values.')
-            y = y_new
+                if not self.discretize:
+                    raise ValueError('MRMR does not support continuous values.'
+                                     ' y could not safely be converted to'
+                                     ' integers, and ``discretize`` is False')
+                y = self._discretize(y)
 
         if self.k is None:
             k = n_features // 2

@@ -21,12 +21,18 @@ class TestMRMR(unittest.TestCase):
         model = MRMR()
         self.assertRaises(ValueError, model.fit, X, y)
 
+        model = MRMR(discretize=True)
+        model.fit(X, y)
+
     def test_continuous_labels(self):
         X = np.zeros((10, 10))
         y = np.zeros(10)
         y[0] = 1.5
         model = MRMR()
         self.assertRaises(ValueError, model.fit, X, y)
+
+        model = MRMR(discretize=True)
+        model.fit(X, y)
 
 
 if __name__ == '__main__':
