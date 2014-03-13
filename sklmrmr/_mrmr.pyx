@@ -96,25 +96,26 @@ def _mrmr(
         long normalize):
 
     cdef long i, j, k
-    cdef np.ndarray[dtype_t, ndim=1] relevances
-    cdef np.ndarray[dtype_t, ndim=1] redundancies
-    cdef np.ndarray[itype_t, ndim=1] ks
-    cdef np.ndarray[dtype_t, ndim=1] scores
     cdef double max_score, score
     cdef long idx_, skip
-
-    i = 0
-    j = 0
-    k = 0
 
     relevances = np.zeros(M, dtype=dtype)
     redundancies = np.zeros(M, dtype=dtype)
     ks = np.zeros(K, dtype=itype)
     scores = np.zeros(K, dtype=dtype)
 
+    cdef dtype_t[:] relevances_view = relevances
+    cdef dtype_t[:] redundancies_view = redundancies
+    cdef itype_t[:] ks_view = ks
+    cdef dtype_t[:] scores_view = scores
+
+    i = 0
+    j = 0
+    k = 0
+
     # precompute mutual info with target variable
     for i in range(M):
-        relevances[i] = _mi_h(N, ts, vs[:, i], tc, vc, n_tc, n_vc, normalize)
+        relevances_view[i] = _mi_h(N, ts, vs[:, i], tc, vc, n_tc, n_vc, normalize)
 
     # perform feature selection
     for i in range(K):
@@ -126,29 +127,29 @@ def _mrmr(
             if i > 0:
                 skip = False
                 for k in range(i):
-                    if ks[k] == j:
+                    if ks_view[k] == j:
                         skip = True
                 if skip:
                     continue
 
             # accumulate the mutual info with previously selected variables
             if i > 0 and method != MAXREL_:
-                redundancies[j] += _mi_h(N, vs[:, ks[i - 1]], vs[:, j], vc, vc, n_vc, n_vc, normalize)
+                redundancies_view[j] += _mi_h(N, vs[:, ks_view[i - 1]], vs[:, j], vc, vc, n_vc, n_vc, normalize)
 
             # if we're maxrel or we're on our first feature
             if i == 0 or method == MAXREL_:
-                score = relevances[j]
+                score = relevances_view[j]
             elif method == MID_:
-                score = relevances[j] - (redundancies[j] / i)
+                score = relevances_view[j] - (redundancies_view[j] / i)
             else:
                 # add 0.0001 to prevent division by zero error
-                score = relevances[j] / ((redundancies[j] / i) + 0.0001)
+                score = relevances_view[j] / ((redundancies_view[j] / i) + 0.0001)
 
             if score > max_score:
                 idx_ = j
                 max_score = score
 
-        ks[i] = idx_
-        scores[i] = max_score
+        ks_view[i] = idx_
+        scores_view[i] = max_score
 
     return ks, scores
