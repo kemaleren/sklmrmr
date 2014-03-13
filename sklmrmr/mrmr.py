@@ -54,7 +54,7 @@ class MRMR(BaseEstimator, SelectorMixin):
         self.n_features_ = support_.sum()
         self.support_ = support_
         self.ranking_ = ranking_
-        self.selected_ = np.argsort(self.ranking_)[:self.k]
+        self.selected_ = np.argsort(self.ranking_)[:self.n_features_]
 
         return self
 
