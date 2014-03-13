@@ -87,6 +87,3 @@ class MRMR(BaseEstimator, SelectorMixin):
         self.selected_ = np.argsort(self.ranking_)[:self.n_features_]
 
         return self
-
-    def _get_support_mask(self):
-        return self.support_
