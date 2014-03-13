@@ -13,7 +13,7 @@ from sklmrmr import MRMR
 
 
 DEFAULT_FILE = os.path.join(os.path.dirname(__file__),
-                            'test_nci9_s3.csv')
+                            '../data/test_nci9_s3.csv')
 
 
 def read_csv(handle):
