@@ -43,7 +43,7 @@ class MRMR(BaseEstimator, SelectorMixin):
     methods = {'maxrel': MAXREL, 'mid': MID, 'miq': MIQ}
 
     def __init__(self, k=None, method='mid', normalize=False):
-        self.method = method
+        self.method = method.lower()
         self.k = k
         self.method = method
         self.normalize = normalize
